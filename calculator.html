@@ -1,0 +1,1134 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vamsi-Naik's Calculator</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary-color: #ff6b00;
+            --text-color: #333;
+            --bg-color: #f5f5f5;
+        }
+        body {
+            background-color: #f0f0f0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .calculator-container {
+            width: 100%;
+            max-width: 400px;
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 20px;
+            background: #f8f8f8;
+            font-size: 14px;
+        }
+        .status-icons {
+            display: flex;
+            gap: 10px;
+        }
+        .battery-status {
+            min-width: 50px;
+            text-align: right;
+        }
+        .nav-tabs {
+            display: flex;
+            border-bottom: 1px solid #eee;
+            padding: 0 15px;
+        }
+        .nav-tab {
+            padding: 15px 20px;
+            cursor: pointer;
+            color: #666;
+        }
+        .nav-tab.active {
+            color: var(--primary-color);
+            border-bottom: 2px solid var(--primary-color);
+        }
+        .calculator-screen {
+            padding: 20px;
+            text-align: right;
+            min-height: 150px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+        }
+        .previous-operand {
+            color: #666;
+            font-size: 24px;
+            min-height: 30px;
+        }
+        .current-operand {
+            font-size: 48px;
+            color: var(--text-color);
+            word-wrap: break-word;
+            word-break: break-all;
+        }
+        .keypad {
+            padding: 20px;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+        }
+        .btn {
+            border: none;
+            background: var(--bg-color);
+            padding: 20px;
+            font-size: 24px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .btn:hover {
+            background-color: #e0e0e0;
+        }
+        .btn.operator {
+            color: var(--primary-color);
+        }
+        .btn.equals {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        .tools-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            padding: 20px;
+        }
+        .tool-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+        }
+        .tool-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: var(--bg-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: var(--primary-color);
+            transition: transform 0.2s;
+        }
+        .tool-icon:hover {
+            transform: scale(1.1);
+        }
+        #lifeTools, #financeTools, #scientificTools {
+            display: none;
+        }
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            border-radius: 5px;
+            color: white;
+            z-index: 1000;
+            animation: slideIn 0.5s ease-out;
+        }
+        .notification.success {
+            background-color: #4CAF50;
+        }
+        .notification.error {
+            background-color: #f44336;
+        }
+        .notification.info {
+            background-color: #2196F3;
+        }
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        .auth-buttons {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0;
+        }
+        .auth-button {
+            margin: 0 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            background-color: var(--primary-color);
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div id="mainContent">
+        <div class="calculator-container">
+            <div class="status-bar">
+                <span class="time"></span>
+                <div class="status-icons">
+                    <span class="signal">📶</span>
+                    <span class="battery-status">🔋</span>
+                </div>
+            </div>
+            <div class="nav-tabs">
+                <div class="nav-tab active" onclick="showTab('calculator')">Calculator</div>
+                <div class="nav-tab" onclick="showTab('life')">Life</div>
+                <div class="nav-tab" onclick="showTab('finance')">Finance</div>
+                <div class="nav-tab" onclick="showTab('scientific')">Scientific</div>
+            </div>
+            <div id="calculator">
+                <div class="calculator-screen">
+                    <div class="previous-operand"></div>
+                    <div class="current-operand">0</div>
+                </div>
+                <div class="keypad">
+                    <button class="btn operator" onclick="clearDisplay()">C</button>
+                    <button class="btn operator" onclick="backspace()">⌫</button>
+                    <button class="btn operator" onclick="appendOperator('%')">%</button>
+                    <button class="btn operator" onclick="appendOperator('÷')">÷</button>
+                    <button class="btn" onclick="appendNumber('7')">7</button>
+                    <button class="btn" onclick="appendNumber('8')">8</button>
+                    <button class="btn" onclick="appendNumber('9')">9</button>
+                    <button class="btn operator" onclick="appendOperator('×')">×</button>
+                    <button class="btn" onclick="appendNumber('4')">4</button>
+                    <button class="btn" onclick="appendNumber('5')">5</button>
+                    <button class="btn" onclick="appendNumber('6')">6</button>
+                    <button class="btn operator" onclick="appendOperator('-')">-</button>
+                    <button class="btn" onclick="appendNumber('1')">1</button>
+                    <button class="btn" onclick="appendNumber('2')">2</button>
+                    <button class="btn" onclick="appendNumber('3')">3</button>
+                    <button class="btn operator" onclick="appendOperator('+')">+</button>
+                    <button class="btn" onclick="toggleSign()">±</button>
+                    <button class="btn" onclick="appendNumber('0')">0</button>
+                    <button class="btn" onclick="appendNumber('.')">.</button>
+                    <button class="btn equals" onclick="calculate()">=</button>
+                </div>
+            </div>
+            <div id="lifeTools" class="tools-grid">
+                <div class="tool-item" onclick="calculateBMI()">
+                    <div class="tool-icon">⚖️</div>
+                    <span>BMI</span>
+                </div>
+                <div class="tool-item" onclick="calculateAge()">
+                    <div class="tool-icon">📅</div>
+                    <span>Age</span>
+                </div>
+                <div class="tool-item" onclick="calculateDiscount()">
+                    <div class="tool-icon">🏷️</div>
+                    <span>Discount</span>
+                </div>
+                <div class="tool-item" onclick="calculateArea()">
+                    <div class="tool-icon">📏</div>
+                    <span>Area</span>
+                </div>
+                <div class="tool-item" onclick="calculateSpeed()">
+                    <div class="tool-icon">🚗</div>
+                    <span>Speed</span>
+                </div>
+                <div class="tool-item" onclick="calculateCalories()">
+                    <div class="tool-icon">🔥</div>
+                    <span>Calories</span>
+                </div>
+                <div class="tool-item" onclick="calculateTimeZone()">
+                    <div class="tool-icon">🌍</div>
+                    <span>Time Zone</span>
+                </div>
+                <div class="tool-item" onclick="calculateBodyFat()">
+                    <div class="tool-icon"><i class="fas fa-weight"></i></div>
+                    <span>Body Fat</span>
+                </div>
+            </div>
+            <div id="financeTools" class="tools-grid">
+                <div class="tool-item" onclick="convertCurrency()">
+                    <div class="tool-icon">💱</div>
+                    <span>Currency</span>
+                </div>
+                <div class="tool-item" onclick="calculateLoan()">
+                    <div class="tool-icon">💰</div>
+                    <span>Loan</span>
+                </div>
+                <div class="tool-item" onclick="calculateGST()">
+                    <div class="tool-icon">📊</div>
+                    <span>GST</span>
+                </div>
+                <div class="tool-item" onclick="calculateInterest()">
+                    <div class="tool-icon">📈</div>
+                    <span>Interest</span>
+                </div>
+                <div class="tool-item" onclick="calculateEMI()">
+                    <div class="tool-icon">🏦</div>
+                    <span>EMI</span>
+                </div>
+                <div class="tool-item" onclick="calculateSIP()">
+                    <div class="tool-icon">📈</div>
+                    <span>SIP</span>
+                </div>
+                <div class="tool-item" onclick="calculateIncomeTax()">
+                    <div class="tool-icon">💼</div>
+                    <span>Income Tax</span>
+                </div>
+                <div class="tool-item" onclick="calculateRetirement()">
+                    <div class="tool-icon">🧓</div>
+                    <span>Retirement</span>
+                </div>
+                <div class="tool-item" onclick="calculateROI()">
+                    <div class="tool-icon">💹</div>
+                    <span>ROI</span>
+                </div>
+                <div class="tool-item" onclick="calculateNPV()">
+                    <div class="tool-icon"><i class="fas fa-calculator"></i></div>
+                    <span>NPV</span>
+                </div>
+                <div class="tool-item" onclick="calculateBreakEven()">
+                    <div class="tool-icon"><i class="fas fa-chart-pie"></i></div>
+                    <span>Break-Even</span>
+                </div>
+                <div class="tool-item" onclick="calculatePaybackPeriod()">
+                    <div class="tool-icon"><i class="fas fa-hourglass-half"></i></div>
+                    <span>Payback</span>
+                </div>
+                <div class="tool-item" onclick="calculateDepreciation()">
+                    <div class="tool-icon"><i class="fas fa-landmark"></i></div>
+                    <span>Depreciation</span>
+                </div>
+                <div class="tool-item" onclick="calculateFutureValueAnnuity()">
+                    <div class="tool-icon"><i class="fas fa-coins"></i></div>
+                    <span>Future Value</span>
+                </div>
+            </div>
+            <div id="scientificTools" class="tools-grid">
+                <div class="tool-item" onclick="calculateSine()">
+                    <div class="tool-icon">sin</div>
+                    <span>Sine</span>
+                </div>
+                <div class="tool-item" onclick="calculateCosine()">
+                    <div class="tool-icon">cos</div>
+                    <span>Cosine</span>
+                </div>
+                <div class="tool-item" onclick="calculateTangent()">
+                    <div class="tool-icon">tan</div>
+                    <span>Tangent</span>
+                </div>
+                <div class="tool-item" onclick="calculateLogarithm()">
+                    <div class="tool-icon">log</div>
+                    <span>Logarithm</span>
+                </div>
+                <div class="tool-item" onclick="calculateExponential()">
+                    <div class="tool-icon">exp</div>
+                    <span>Exponential</span>
+                </div>
+                <div class="tool-item" onclick="calculateSquareRoot()">
+                    <div class="tool-icon">√</div>
+                    <span>Square Root</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="calculatorModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Calculator Result</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="modalResult"></div>
+                    <div id="chartContainer" style="display: none;">
+                        <canvas id="resultChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentOperand = '0';
+        let previousOperand = '';
+        let operation = undefined;
+
+
+  
+
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+
+        function showTab(tabName) {
+            document.getElementById('calculator').style.display = 'none';
+            document.getElementById('lifeTools').style.display = 'none';
+            document.getElementById('financeTools').style.display = 'none';
+            document.getElementById('scientificTools').style.display = 'none';
+
+            if (tabName === 'calculator') {
+                document.getElementById('calculator').style.display = 'block';
+            } else if (tabName === 'life') {
+                document.getElementById('lifeTools').style.display = 'grid';
+            } else if (tabName === 'finance') {
+                document.getElementById('financeTools').style.display = 'grid';
+            } else if (tabName === 'scientific') {
+                document.getElementById('scientificTools').style.display = 'grid';
+            }
+
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            event.target.classList.add('active');
+        }
+
+        function updateDisplay() {
+            document.querySelector('.current-operand').textContent = currentOperand;
+            document.querySelector('.previous-operand').textContent = previousOperand;
+        }
+
+        function appendNumber(number) {
+            if (number === '.' && currentOperand.includes('.')) return;
+            if (currentOperand === '0' && number !== '.') {
+                currentOperand = number;
+            } else {
+                currentOperand += number;
+            }
+            updateDisplay();
+        }
+
+        function appendOperator(operator) {
+            if (currentOperand === '') return;
+            if (previousOperand !== '') {
+                calculate();
+            }
+            operation = operator;
+            previousOperand = currentOperand + ' ' + operator;
+            currentOperand = '';
+            updateDisplay();
+        }
+
+        function calculate() {
+            let computation;
+            const prev = parseFloat(previousOperand);
+            const current = parseFloat(currentOperand);
+            if (isNaN(prev) || isNaN(current)) return;
+
+            switch (operation) {
+                case '+':
+                    computation = prev + current;
+                    break;
+                case '-':
+                    computation = prev - current;
+                    break;
+                case '×':
+                    computation = prev * current;
+                    break;
+                case '÷':
+                    computation = prev / current;
+                    break;
+                case '%':
+                    computation = prev % current;
+                    break;
+                default:
+                    return;
+            }
+
+            currentOperand = computation.toString();
+            operation = undefined;
+            previousOperand = '';
+            updateDisplay();
+        }
+
+        function clearDisplay() {
+            currentOperand = '0';
+            previousOperand = '';
+            operation = undefined;
+            updateDisplay();
+        }
+
+        function backspace() {
+            if (currentOperand.length === 1) {
+                currentOperand = '0';
+            } else {
+                currentOperand = currentOperand.slice(0, -1);
+            }
+            updateDisplay();
+        }
+
+        function toggleSign() {
+            currentOperand = (parseFloat(currentOperand) * -1).toString();
+            updateDisplay();
+        }
+
+        function calculateBMI() {
+            try {
+                const weight = validateNumber(prompt("Enter weight in kg:"), "weight");
+                const height = validateNumber(prompt("Enter height in meters:"), "height");
+                const bmi = weight / (height * height);
+                let category = '';
+
+                if (bmi < 18.5) category = 'Underweight';
+                else if (bmi < 25) category = 'Normal weight';
+                else if (bmi < 30) category = 'Overweight';
+                else category = 'Obese';
+
+                showResult('BMI Calculator', 
+                    `<div class="alert alert-info">
+                        <p>Your BMI is: ${bmi.toFixed(2)}</p>
+                        <p>Category: ${category}</p>
+                    </div>`
+                );
+            } catch (error) {
+                handleError(error);
+            }
+        }
+
+        function calculateAge() {
+            try {
+                const birthDate = new Date(prompt("Enter birth date (YYYY-MM-DD):"));
+                const today = new Date();
+                let age = today.getFullYear() - birthDate.getFullYear();
+                const monthDiff = today.getMonth() - birthDate.getMonth();
+
+                if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+                    age--;
+                }
+
+                showResult('Age Calculator', 
+                    `<div class="alert alert-info">
+                        <p>Your age is: ${age} years</p>
+                    </div>`
+                );
+            } catch (error) {
+                handleError(error);
+            }
+        }
+
+        function calculateLoan() {
+            try {
+                const principal = validateNumber(prompt("Enter loan amount:"), "principal");
+                const rate = validateNumber(prompt("Enter annual interest rate (%):"), "rate");
+                const years = validateNumber(prompt("Enter loan term (years):"), "years");
+
+                const monthlyRate = rate / 1200;
+                const months = years * 12;
+                const monthlyPayment = principal * monthlyRate * Math.pow(1 + monthlyRate, months) / (Math.pow(1 + monthlyRate, months) - 1);
+                const totalPayment = monthlyPayment * months;
+                const totalInterest = totalPayment - principal;
+
+                const chartData = {
+                    type: 'pie',
+                    data: {
+                        labels: ['Principal', 'Total Interest'],
+                        datasets: [{
+                            data: [principal, totalInterest],
+                            backgroundColor: ['#36a2eb', '#ff6384']
+                        }]
+                    }
+                };
+
+                showResult('Loan Calculator', 
+                    `<div class="alert alert-info">
+                        <p>Monthly Payment: ${formatCurrency(monthlyPayment)}</p>
+                        <p>Total Payment: ${formatCurrency(totalPayment)}</p>
+                        <p>Total Interest: ${formatCurrency(totalInterest)}</p>
+                    </div>`,
+                    chartData
+                );
+            } catch (error) {
+                handleError(error);
+            }
+        }
+
+        function calculateDiscount() {
+            try {
+                const originalPrice = validateNumber(prompt("Enter original price:"), "original price");
+                const discountRate = validateNumber(prompt("Enter discount rate (%):"), "discount rate");
+                const discountAmount = (originalPrice * discountRate) / 100;
+                const finalPrice = originalPrice - discountAmount;
+
+                showResult('Discount Calculator', 
+                    `<div class="alert alert-info">
+                        <p>Original Price: ${formatCurrency(originalPrice)}</p>
+                        <p>Discount Amount: ${formatCurrency(discountAmount)}</p>
+                        <p>Final Price: ${formatCurrency(finalPrice)}</p>
+                    </div>`
+                );
+            } catch (error) {
+                handleError(error);
+            }
+        }
+
+        function calculateArea() {
+            try {
+                const length = validateNumber(prompt("Enter length:"), "length");
+                const width = validateNumber(prompt("Enter width:"), "width");
+                const area = length * width;
+
+                showResult('Area Calculator', 
+                    `<div class="alert alert-info">
+                        <p>Length: ${length}</p>
+                        <p>Width: ${width}</p>
+                        <p>Area: ${area}</p>
+                    </div>`
+                );
+            } catch (error) {
+                handleError(error);
+            }
+        }
+
+        function calculateSpeed() {
+            try {
+                const distance = validateNumber(prompt("Enter distance (km):"), "distance");
+                const time = validateNumber(prompt("Enter time (hours):"), "time");
+                const speed = distance / time;
+
+                showResult('Speed Calculator', 
+                    `<div class="alert alert-info">
+                        <p>Distance: ${distance} km</p>
+                        <p>Time: ${time} hours</p>
+                        <p>Speed: ${speed.toFixed(2)} km/h</p>
+                    </div>`
+                );
+            } catch (error) {
+                handleError(error);
+            }
+        }
+
+        function calculateCalories() {
+            try {
+                const weight = validateNumber(prompt("Enter weight in kg:"), "weight");
+                const height = validateNumber(prompt("Enter height in cm:"), "height");
+                const age = validateNumber(prompt("Enter age:"), "age");
+                const gender = prompt("Enter gender (male/female):").toLowerCase();
+
+                let bmr;
+                if (gender === 'male') {
+                    bmr = 88.362 + (13.397 * weight) + (4.799 * height) - (5.677 * age);
+                } else if (gender === 'female') {
+                    bmr = 447.593 + (9.247 * weight) + (3.098 * height) - (4.330 * age);
+                } else {
+                    throw new Error("Invalid gender entered.");
+                }
+
+                showResult('Calorie Calculator', 
+                    `<div class="alert alert-info">
+                        <p>Estimated BMR: ${bmr.toFixed(2)} calories/day</p>
+                    </div>`
+                );
+            } catch (error) {
+                handleError(error);
+            }
+        }
+
+        function calculateTimeZone() {
+            try {
+                const city = prompt("Enter city or time zone (e.g., 'America/New_York', 'GMT+5:30'):");
+                const now = new Date();
+                const options = { timeZone: city, timeZoneName: 'short' };
+                const timeString = now.toLocaleTimeString('en-US', options);
+
+                showResult('Time Zone Calculator', 
+                    `<div class="alert alert-info">
+                        <p>Current time in ${city}: ${timeString}</p>
+                    </div>`
+                );
+            } catch (error) {
+                handleError(error);
+            }
+        }
+
+        function calculateBodyFat() {
+            try {
+                const waist = validateNumber(prompt("Enter waist circumference in cm:"), "waist");
+                const neck = validateNumber(prompt("Enter neck circumference in cm:"), "neck");
+                const height = validateNumber(prompt("Enter height in cm:"), "height");
+                const gender = prompt("Enter gender (male/female):").toLowerCase();
+
+                let bodyFatPercentage;
+                if (gender === 'male') {
+                    bodyFatPercentage = 495 / (1.0324 - 0.19077 * Math.log10(waist - neck) + 0.15456 * Math.log10(height)) - 450;
+                } else if (gender === 'female') {
+                    const hip = validateNumber(prompt("Enter hip circumference in cm:"), "hip");
+                    bodyFatPercentage = 495 / (1.29579 - 0.35004 * Math.log10(waist + hip - neck) + 0.22100 * Math.log10(height)) - 450;
+                } else {
+                    throw new Error("Invalid gender entered.");
+                }
+
+                showResult('Body Fat Calculator', 
+                    `<div class="alert alert-info">
+                        <p>Estimated Body Fat Percentage: ${bodyFatPercentage.toFixed(2)}%</p>
+                    </div>`
+                );
+            } catch (error) {
+                handleError(error);
+            }
+        }
+
+        function calculateGST() {
+            try {
+                const amount = validateNumber(prompt("Enter amount:"), "amount");
+                const gstRate = validateNumber(prompt("Enter GST rate (%):"), "GST rate");
+                const gstAmount = (amount * gstRate) / 100;
+                const totalAmount = amount + gstAmount;
+
+                showResult('GST Calculator', 
+                    `<div class="alert alert-info">
+                        <p>Amount: ${formatCurrency(amount)}</p>
+                        <p>GST Amount: ${formatCurrency(gstAmount)}</p>
+                        <p>Total Amount: ${formatCurrency(totalAmount)}</p>
+                    </div>`
+                );
+            } catch (error) {
+                handleError(error);
+            }
+        }
+
+        function calculateEMI() {
+            try {
+                const principal = validateNumber(prompt("Enter loan amount:"), "principal");
+                const rate = validateNumber(prompt("Enter annual interest rate (%):"), "rate");
+                const years = validateNumber(prompt("Enter loan term (years):"), "years");
+
+                const monthlyRate = rate / 1200;
+                const months = years * 12;
+                const emi = principal * monthlyRate * Math.pow(1 + monthlyRate, months) / (Math.pow(1 + monthlyRate, months) - 1);
+
+                showResult('EMI Calculator', 
+                    `<div class="alert alert-info">
+                        <p>Loan Amount: ${formatCurrency(principal)}</p>
+                        <p>Monthly EMI: ${formatCurrency(emi)}</p>
+                    </div>`
+                );
+            } catch (error) {
+                handleError(error);
+            }
+        }
+
+        function calculateSIP() {
+            try {
+                const monthlyInvestment = validateNumber(prompt("Enter monthly investment amount:"), "monthly investment");
+                const rate = validateNumber(prompt("Enter annual interest rate (%):"), "rate");
+                const years = validateNumber(prompt("Enter investment period (years):"), "years");
+
+                const months = years * 12;
+                const monthlyRate = rate / 1200;
+                const futureValue = monthlyInvestment * ((Math.pow(1 + monthlyRate, months) - 1) / monthlyRate) * (1 + monthlyRate);
+
+                showResult('SIP Calculator', 
+                    `<div class="alert alert-info">
+                        <p>Future Value of SIP: ${formatCurrency(futureValue)}</p>
+                    </div>`
+                );
+            } catch (error) {
+                handleError(error);
+            }
+        }
+
+        function calculateIncomeTax() {
+            try {
+                const income = validateNumber(prompt("Enter annual income:"), "income");
+                let tax;
+
+                if (income <= 250000) {
+                    tax = 0;
+                } else if (income <= 500000) {
+                    tax = (income - 250000) * 0.05;
+                } else if (income <= 1000000) {
+                    tax = (income - 500000) * 0.2 + 12500;
+                } else {
+                    tax = (income - 1000000) * 0.3 + 112500;
+                }
+
+                showResult('Income Tax Calculator', 
+                    `<div class="alert alert-info">
+                        <p>Annual Income: ${formatCurrency(income)}</p>
+                        <p>Income Tax: ${formatCurrency(tax)}</p>
+                    </div>`
+                );
+            } catch (error) {
+                handleError(error);
+            }
+        }
+
+        function calculateRetirement() {
+            try {
+                const currentAge = validateNumber(prompt("Enter your current age:"), "current age");
+                const retirementAge = validateNumber(prompt("Enter your desired retirement age:"), "retirement age");
+                const monthlySavings = validateNumber(prompt("Enter your monthly savings:"), "monthly savings");
+                const annualInterestRate = validateNumber(prompt("Enter expected annual interest rate (%):"), "interest rate");
+
+                const yearsToRetirement = retirementAge - currentAge;
+                const monthsToRetirement = yearsToRetirement * 12;
+                const monthlyRate = annualInterestRate / 1200;
+                const futureValue = monthlySavings * ((Math.pow(1 + monthlyRate, monthsToRetirement) - 1) / monthlyRate) * (1 + monthlyRate);
+
+                showResult('Retirement Calculator', 
+                    `<div class="alert alert-info">
+                        <p>Future Value of Retirement Savings: ${formatCurrency(futureValue)}</p>
+                    </div>`
+                );
+            } catch (error) {
+                handleError(error);
+            }
+        }
+
+        function calculateROI() {
+            try {
+                const initialInvestment = validateNumber(prompt("Enter initial investment amount:"), "initial investment");
+                const finalValue = validateNumber(prompt("Enter final value of the investment:"), "final value");
+                const years = validateNumber(prompt("Enter the number of years:"), "years");
+
+                const roi = ((finalValue - initialInvestment) / initialInvestment) * 100;
+                const annualizedROI = Math.pow((finalValue / initialInvestment), (1 / years)) - 1;
+
+                showResult('ROI Calculator', 
+                    `<div class="alert alert-info">
+                        <p>Total ROI: ${roi.toFixed(2)}%</p>
+                        <p>Annualized ROI: ${(annualizedROI * 100).toFixed(2)}%</p>
+                    </div>`
+                );
+            } catch (error) {
+                handleError(error);
+            }
+        }
+
+        function calculateNPV() {
+            try {
+                const cashFlows = prompt("Enter cash flows separated by commas (e.g., 1000, 2000, 3000):").split(',').map(Number);
+                const rate = validateNumber(prompt("Enter discount rate (%):"), "discount rate");
+
+                const npv = cashFlows.reduce((acc, cashFlow, index) => {
+                    return acc + (cashFlow / Math.pow(1 + rate / 100, index + 1));
+                }, 0);
+
+                showResult('NPV Calculator', 
+                    `<div class="alert alert-info">
+                        <p>Net Present Value: ${formatCurrency(npv)}</p>
+                    </div>`
+                );
+            } catch (error) {
+                handleError(error);
+            }
+        }
+
+        function calculateBreakEven() {
+            try {
+                const fixedCosts = validateNumber(prompt("Enter fixed costs:"), "fixed costs");
+                const pricePerUnit = validateNumber(prompt("Enter price per unit:"), "price per unit");
+                const variableCostPerUnit = validateNumber(prompt("Enter variable cost per unit:"), "variable cost per unit");
+
+                const breakEvenPoint = fixedCosts / (pricePerUnit - variableCostPerUnit);
+
+                showResult('Break-Even Calculator', 
+                    `<div class="alert alert-info">
+                        <p>Break-Even Point: ${breakEvenPoint.toFixed(2)} units</p>
+                    </div>`
+                );
+            } catch (error) {
+                handleError(error);
+            }
+        }
+
+        function calculatePaybackPeriod() {
+            try {
+                const initialInvestment = validateNumber(prompt("Enter initial investment:"), "initial investment");
+                const cashFlows = prompt("Enter annual cash flows separated by commas (e.g., 1000, 2000, 3000):").split(',').map(Number);
+
+                let cumulativeCashFlow = 0;
+                let paybackPeriod = 0;
+
+                for (let i = 0; i < cashFlows.length; i++) {
+                    cumulativeCashFlow += cashFlows[i];
+                    if (cumulativeCashFlow >= initialInvestment) {
+                        paybackPeriod = i + 1;
+                        break;
+                    }
+                }
+
+                showResult('Payback Period Calculator', 
+                    `<div class="alert alert-info">
+                        <p>Payback Period: ${paybackPeriod} years</p>
+                    </div>`
+                );
+            } catch (error) {
+                handleError(error);
+            }
+        }
+
+        function calculateDepreciation() {
+            try {
+                const initialCost = validateNumber(prompt("Enter initial cost of the asset:"), "initial cost");
+                const salvageValue = validateNumber(prompt("Enter salvage value:"), "salvage value");
+                const usefulLife = validateNumber(prompt("Enter useful life in years:"), "useful life");
+
+                const annualDepreciation = (initialCost - salvageValue) / usefulLife;
+
+                showResult('Depreciation Calculator', 
+                    `<div class="alert alert-info">
+                        <p>Annual Depreciation: ${formatCurrency(annualDepreciation)}</p>
+                    </div>`
+                );
+            } catch (error) {
+                handleError(error);
+            }
+        }
+
+        function calculateFutureValueAnnuity() {
+            try {
+                const periodicPayment = validateNumber(prompt("Enter periodic payment amount:"), "periodic payment");
+                const rate = validateNumber(prompt("Enter interest rate per period (%):"), "interest rate");
+                const periods = validateNumber(prompt("Enter number of periods:"), "periods");
+
+                const futureValue = periodicPayment * ((Math.pow(1 + rate / 100, periods) - 1) / (rate / 100));
+
+                showResult('Future Value of Annuity Calculator', 
+                    `<div class="alert alert-info">
+                        <p>Future Value: ${formatCurrency(futureValue)}</p>
+                    </div>`
+                );
+            } catch (error) {
+                handleError(error);
+            }
+        }
+
+        function convertCurrency() {
+            try {
+                const amount = validateNumber(prompt("Enter amount:"), "amount");
+                const fromCurrency = prompt("Enter from currency (e.g., USD):").toUpperCase();
+                const toCurrency = prompt("Enter to currency (e.g., INR):").toUpperCase();
+
+                const conversionRates = {
+                    'USD': { 'INR': 82.74, 'EUR': 0.91, 'GBP': 0.78 },
+                    'EUR': { 'USD': 1.09, 'INR': 90.45, 'GBP': 0.86 },
+                    'GBP': { 'USD': 1.27, 'INR': 105.25, 'EUR': 1.16 },
+                    'INR': { 'USD': 0.012, 'EUR': 0.011, 'GBP': 0.0095 }
+                };
+
+                if (!conversionRates[fromCurrency] || !conversionRates[fromCurrency][toCurrency]) {
+                    throw new Error("Conversion rate not available for the selected currencies.");
+                }
+
+                const convertedAmount = amount * conversionRates[fromCurrency][toCurrency];
+
+                showResult('Currency Converter', 
+                    `<div class="alert alert-info">
+                        <p>${amount} ${fromCurrency} = ${convertedAmount.toFixed(2)} ${toCurrency}</p>
+                    </div>`
+                );
+            } catch (error) {
+                handleError(error);
+            }
+        }
+
+        function calculateSine() {
+            try {
+                const angle = validateNumber(prompt("Enter angle in degrees:"), "angle");
+                const result = Math.sin(angle * Math.PI / 180);
+                showResult('Sine Calculator', 
+                    `<div class="alert alert-info">
+                        <p>sin(${angle}°) = ${result.toFixed(4)}                </div>`
+                );
+            } catch (error) {
+                handleError(error);
+            }
+        }
+
+        function calculateCosine() {
+            try {
+                const angle = validateNumber(prompt("Enter angle in degrees:"), "angle");
+                const result = Math.cos(angle * Math.PI / 180);
+                showResult('Cosine Calculator', 
+                    `<div class="alert alert-info">
+                        <p>cos(${angle}°) = ${result.toFixed(4)}</p>
+                    </div>`
+                );
+            } catch (error) {
+                handleError(error);
+            }
+        }
+
+        function calculateTangent() {
+            try {
+                const angle = validateNumber(prompt("Enter angle in degrees:"), "angle");
+                const result = Math.tan(angle * Math.PI / 180);
+                showResult('Tangent Calculator', 
+                    `<div class="alert alert-info">
+                        <p>tan(${angle}°) = ${result.toFixed(4)}</p>
+                    </div>`
+                );
+            } catch (error) {
+                handleError(error);
+            }
+        }
+
+        function calculateLogarithm() {
+            try {
+                const number = validateNumber(prompt("Enter a number:"), "number");
+                const result = Math.log10(number);
+                showResult('Logarithm Calculator', 
+                    `<div class="alert alert-info">
+                        <p>log(${number}) = ${result.toFixed(4)}</p>
+                    </div>`
+                );
+            } catch (error) {
+                handleError(error);
+            }
+        }
+
+        function calculateExponential() {
+            try {
+                const exponent = validateNumber(prompt("Enter exponent:"), "exponent");
+                const result = Math.exp(exponent);
+                showResult('Exponential Calculator', 
+                    `<div class="alert alert-info">
+                        <p>exp(${exponent}) = ${result.toFixed(4)}</p>
+                    </div>`
+                );
+            } catch (error) {
+                handleError(error);
+            }
+        }
+
+        function calculateSquareRoot() {
+            try {
+                const number = validateNumber(prompt("Enter a number:"), "number");
+                const result = Math.sqrt(number);
+                showResult('Square Root Calculator', 
+                    `<div class="alert alert-info">
+                        <p>√${number} = ${result.toFixed(4)}</p>
+                    </div>`
+                );
+            } catch (error) {
+                handleError(error);
+            }
+        }
+
+        function updateTime() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('en-US', { 
+                hour: 'numeric', 
+                minute: '2-digit',
+                hour12: true 
+            });
+            document.querySelector('.time').textContent = timeString;
+        }
+
+        function updateBatteryStatus() {
+            if ('getBattery' in navigator) {
+                navigator.getBattery().then(function(battery) {
+                    updateBatteryIcon(battery.level, battery.charging);
+
+                    battery.addEventListener('levelchange', function() {
+                        updateBatteryIcon(battery.level, battery.charging);
+                    });
+
+                    battery.addEventListener('chargingchange', function() {
+                        updateBatteryIcon(battery.level, battery.charging);
+                    });
+                });
+            }
+        }
+
+        function updateBatteryIcon(level, charging) {
+            const batteryLevel = Math.floor(level * 100);
+            let batteryIcon = '';
+            
+            if (charging) {
+                batteryIcon = '⚡';
+            } else {
+                if (batteryLevel >= 90) batteryIcon = '🔋';
+                else if (batteryLevel >= 70) batteryIcon = '🔋';
+                else if (batteryLevel >= 50) batteryIcon = '🔋';
+                else if (batteryLevel >= 30) batteryIcon = '🔋';
+                else batteryIcon = '🪫';
+            }
+
+            const batteryText = `${batteryIcon} ${batteryLevel}%`;
+            document.querySelector('.battery-status').textContent = batteryText;
+        }
+
+        function initializeTimeAndBattery() {
+            updateTime();
+            setInterval(updateTime, 1000);
+            updateBatteryStatus();
+        }
+
+        function validateNumber(value, fieldName) {
+            const num = parseFloat(value);
+            if (isNaN(num) || value === '' || value === null) {
+                throw new Error(`Please enter a valid number for ${fieldName}`);
+            }
+            return num;
+        }
+
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('en-IN', {
+                style: 'currency',
+                currency: 'INR'
+            }).format(amount);
+        }
+
+        function showResult(title, content, chartData = null) {
+            const modal = new bootstrap.Modal(document.getElementById('calculatorModal'));
+            document.querySelector('.modal-title').textContent = title;
+            document.getElementById('modalResult').innerHTML = content;
+            
+            const chartContainer = document.getElementById('chartContainer');
+            if (chartData) {
+                const ctx = document.getElementById('resultChart').getContext('2d');
+                if (window.resultChart) {
+                    window.resultChart.destroy();
+                }
+                window.resultChart = new Chart(ctx, chartData);
+                chartContainer.style.display = 'block';
+            } else {
+                chartContainer.style.display = 'none';
+            }
+            modal.show();
+        }
+
+        function handleError(error) {
+            const errorMessage = `<div class="alert alert-danger">${error.message}</div>`;
+            showResult('Error', errorMessage);
+        }
+
+        window.onload = function() {
+            initializeTimeAndBattery();
+            showMainContent();
+        };
+
+        function showMainContent() {
+            document.getElementById('mainContent').style.display = 'block';
+        }
+    </script>
+</body>
+</html>
